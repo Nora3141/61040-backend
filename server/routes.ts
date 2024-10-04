@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Friending, Posting, Sessioning } from "./app";
+import { Authing, Favoriting, Filtering, Friending, Posting, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
@@ -151,6 +151,85 @@ class Routes {
     const user = Sessioning.getUser(session);
     const fromOid = (await Authing.getUserByUsername(from))._id;
     return await Friending.rejectRequest(fromOid, user);
+  }
+
+  // Favoriting Routes
+
+  @Router.get("/favoriting/getFavorites/:username")
+  async getFavoritesByUser(username: string) {
+    const userID = (await Authing.getUserByUsername(username))._id;
+    return await Favoriting.getFavoritedByUser(userID);
+  }
+
+  @Router.post("/favoriting/toggleFavorite/:postID")
+  async toggleFavorite(postID: string, session: SessionDoc) {
+    Sessioning.isLoggedIn(session);
+    const oid = new ObjectId(postID);
+    Posting.assertPostExists(oid);
+
+    const user = Sessioning.getUser(session);
+    const result = await Favoriting.toggleFavorite(user, oid);
+    return { msg: "Toggled Favorite: " + result };
+  }
+
+  @Router.get("/favoriting/favoriteCount/:postID")
+  async getFavoriteCount(postID: string) {
+    const oid = new ObjectId(postID);
+    Posting.assertPostExists(oid);
+    const result = await Favoriting.getFavoriteCount(oid);
+    return { msg: "Favorite Count: " + result };
+  }
+
+  // Filtering Routes
+
+  @Router.get("/filtering/getTags/:postID")
+  async getTagsOnPost(postID: string) {
+    const oid = new ObjectId(postID);
+    Posting.assertPostExists(oid);
+    return await Filtering.getTagsOnPost(oid);
+  }
+
+  @Router.post("/filtering/addTag/:postID")
+  async addTagToPost(postID: string, tagName: string) {
+    const oid = new ObjectId(postID);
+    Posting.assertPostExists(oid);
+    return await Filtering.addTag(oid, tagName);
+  }
+
+  @Router.post("/filtering/removeTag/:postID")
+  async removeTagFromPost(postID: string, tagName: string) {
+    const oid = new ObjectId(postID);
+    Posting.assertPostExists(oid);
+    return await Filtering.removeTag(oid, tagName);
+  }
+
+  @Router.get("/filtering/getPostsByTag")
+  async getPostsByTag(tagNames: string) {
+    return await Filtering.getPostsByTags(tagNames);
+  }
+
+  // Searching Routes
+
+  @Router.get("/searching/query/:query")
+  async searchQuery(query: string) {
+    // use searching concept to call a function to get post ids from this query
+    // use posting concept to get the posts from these post ids
+  }
+
+  // Remixing Routes
+
+  @Router.get("/remixing/getRemixes/:postID")
+  async getPostRemixes(postID: ObjectId) {
+    // assert postID is an existing post (using posting concept)
+    // use remixing concept to get postIDs of remixes from the request on this original postID
+    // use posting concept to get the posts from these ids
+  }
+
+  @Router.get("/remixing/createRemix/:postID")
+  async createRemix(originalPostID: ObjectId, newPostID: ObjectId) {
+    // assert that both posts exist (using posting concept)
+    // assert that logged in (using authenticating concept)
+    // use remixing concept to attatch the newPostID to the original postID
   }
 }
 

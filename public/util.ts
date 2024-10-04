@@ -80,6 +80,48 @@ const operations: Operation[] = [
     method: "DELETE",
     fields: { id: "input" },
   },
+  {
+    name: "Get User's Favorited Posts",
+    endpoint: "/api/favoriting/getFavorites/:username",
+    method: "GET",
+    fields: { username: "input" },
+  },
+  {
+    name: "Toggle Favorite",
+    endpoint: "/api/favoriting/toggleFavorite/:postID",
+    method: "POST",
+    fields: { postID: "input" },
+  },
+  {
+    name: "Get Favorite Count",
+    endpoint: "/api/favoriting/favoriteCount/:postID",
+    method: "GET",
+    fields: { postID: "input" },
+  },
+  {
+    name: "Get Tags On Post",
+    endpoint: "/api/filtering/getTags/:postID",
+    method: "GET",
+    fields: { postID: "input" },
+  },
+  {
+    name: "Add Tag To Post",
+    endpoint: "/api/filtering/addTag/:postID",
+    method: "POST",
+    fields: { postID: "input", tagName: "input" },
+  },
+  {
+    name: "Remove Tag From Post",
+    endpoint: "/api/filtering/removeTag/:postID",
+    method: "POST",
+    fields: { postID: "input", tagName: "input" },
+  },
+  {
+    name: "Get Posts by Tags (separate by ',')",
+    endpoint: "/api/filtering/getPostsByTag",
+    method: "GET",
+    fields: { tagNames: "input" },
+  },
   //
   // ...
   //
