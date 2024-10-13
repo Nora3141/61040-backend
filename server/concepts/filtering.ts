@@ -62,6 +62,9 @@ export default class FilteringConcept {
       const newFiltered: FilterDoc[] = [];
       const tagName = tags[i];
       const idx = this.ALL_TAGS.indexOf(tagName);
+      if (idx == -1) {
+        return []; // for not included tags, just return an empty list
+      }
       filtered.forEach((entry) => {
         if (entry.tags.includes(idx)) newFiltered.push(entry);
       });
@@ -73,5 +76,9 @@ export default class FilteringConcept {
       postIDs.push(entry.postID);
     });
     return postIDs;
+  }
+
+  async deletePostStorage(postID: ObjectId) {
+    return await this.filters.deleteOne({ postID: postID });
   }
 }

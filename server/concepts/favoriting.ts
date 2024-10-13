@@ -8,6 +8,7 @@ export interface FavoriteDoc extends BaseDoc {
 
 export default class FavoritingConcept {
   public readonly favorites: DocCollection<FavoriteDoc>;
+
   constructor(collectionName: string) {
     this.favorites = new DocCollection<FavoriteDoc>(collectionName);
   }
@@ -30,11 +31,29 @@ export default class FavoritingConcept {
     favs.forEach((favorite) => {
       result.push(favorite.favoritedPost);
     });
-    return favs;
+    return result;
   }
 
   async getFavoriteCount(postID: ObjectId) {
     const favs = await this.favorites.readMany({ favoritedPost: postID });
     return favs.length;
+  }
+
+  async getMostFavorited(postIDs: ObjectId[], numToGet: number) {
+    if (postIDs.length <= numToGet) return postIDs;
+
+    const mapped = await Promise.all(
+      postIDs.map(async (id: ObjectId) => {
+        const favoritesOfPost = await this.favorites.readMany({ favoritedPost: id });
+        return { count: favoritesOfPost.length, id };
+      }),
+    );
+    mapped.sort((a, b) => b.count - a.count);
+
+    const result = [];
+    for (let i = 0; i < numToGet && i < mapped.length; i++) {
+      result.push(mapped[i].id);
+    }
+    return result;
   }
 }
