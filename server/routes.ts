@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Favoriting, Filtering, Friending, Posting, Remixing, Sessioning } from "./app";
+import { Authing, Favoriting, Filtering, Posting, Remixing, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
@@ -83,6 +83,10 @@ class Routes {
     return Responses.posts(posts);
   }
 
+  /**
+   * @param title The title or prefix to search by
+   * @returns The set of posts that match the search
+   */
   @Router.get("/posts/:title")
   async searchPosts(title: string) {
     const searchingByTitle = await Posting.getByTitle(title);
@@ -96,16 +100,6 @@ class Routes {
     return { msg: created.msg, post: await Responses.post(created.post) };
   }
 
-  /* For now, getting rid of update
-  @Router.patch("/posts/:id")
-  async updatePost(session: SessionDoc, id: string, content?: string, options?: PostOptions) {
-    const user = Sessioning.getUser(session);
-    const oid = new ObjectId(id);
-    await Posting.assertAuthorIsUser(oid, user);
-    return await Posting.update(oid, content, options);
-  }
-    */
-
   @Router.delete("/posts/:id")
   async deletePost(session: SessionDoc, id: string) {
     const user = Sessioning.getUser(session);
@@ -116,6 +110,7 @@ class Routes {
     return Posting.delete(oid);
   }
 
+  /* FRIEND ROUTES (not being used in my project)
   @Router.get("/friends")
   async getFriends(session: SessionDoc) {
     const user = Sessioning.getUser(session);
@@ -162,9 +157,14 @@ class Routes {
     const fromOid = (await Authing.getUserByUsername(from))._id;
     return await Friending.rejectRequest(fromOid, user);
   }
+    */
 
   // Favoriting Routes
 
+  /**
+   * @param userID The ID of a user object to check the favorited posts for
+   * @returns A list of the posts favorited by that user
+   */
   @Router.get("/favoriting/getFavorites/:userID")
   async getFavoritesByUser(userID: string) {
     const actualID = new ObjectId(userID);
@@ -173,6 +173,13 @@ class Routes {
     return result;
   }
 
+  /**
+   * Toggles the favorite on or off for some post (by the current session user)
+   *
+   * @param postID The ID of the post to favorite/unfavorite
+   * @param session The current session the user is in
+   * @returns a message about whether the user unfavorited or favorited the post
+   */
   @Router.post("/favoriting/toggleFavorite/:postID")
   async toggleFavorite(postID: string, session: SessionDoc) {
     Sessioning.isLoggedIn(session);
@@ -184,6 +191,10 @@ class Routes {
     return { msg: "Toggled Favorite: " + result };
   }
 
+  /**
+   * @param postID The ID of some post to check the number of favorites on
+   * @returns The number of favorites on the post
+   */
   @Router.get("/favoriting/favoriteCount/:postID")
   async getFavoriteCount(postID: string) {
     const oid = new ObjectId(postID);
@@ -192,6 +203,10 @@ class Routes {
     return { msg: "Favorite Count: " + result };
   }
 
+  /**
+   * @param numPosts The number of trending posts to get
+   * @returns A list of recent posts that have the most favorites (of size numPosts)
+   */
   @Router.get("/favoriting/getTrendingFavorited/:numPosts")
   async getTrendingFavorited(numPosts: number) {
     // returns "numPosts" number of recent posts that are getting the most favorites
@@ -211,6 +226,10 @@ class Routes {
 
   // Filtering Routes
 
+  /**
+   * @param postID The ID of a post to get the tags for
+   * @returns A list of the tags on a particular post (as indices)
+   */
   @Router.get("/filtering/getTags/:postID")
   async getTagsOnPost(postID: string) {
     const oid = new ObjectId(postID);
@@ -218,6 +237,12 @@ class Routes {
     return await Filtering.getTagsOnPost(oid);
   }
 
+  /**
+   * Adds a tag to a post (if the tag name is within the defined valid set)
+   * @param postID the id of the post to add a tag to
+   * @param tagName the name of the tag to add
+   * @returns a message about whether the addition was successful
+   */
   @Router.post("/filtering/addTag/:postID")
   async addTagToPost(postID: string, tagName: string) {
     const oid = new ObjectId(postID);
@@ -225,6 +250,12 @@ class Routes {
     return await Filtering.addTag(oid, tagName);
   }
 
+  /**
+   * Removes one specific tag from a post (if it exists on the post, otherwise does nothing)
+   * @param postID the id of the post with a tag to remove
+   * @param tagName the name of the tag to remove
+   * @returns a message about whether or not the action was successful
+   */
   @Router.post("/filtering/removeTag/:postID")
   async removeTagFromPost(postID: string, tagName: string) {
     const oid = new ObjectId(postID);
@@ -232,11 +263,19 @@ class Routes {
     return await Filtering.removeTag(oid, tagName);
   }
 
+  /**
+   * @param tagNames a list of tags to check, separated by comma (whitespace ignored)
+   * @returns the set of all posts where each post in the set has all of the tags in 'tagNames'
+   */
   @Router.get("/filtering/getPostsByTag")
   async getPostsByTag(tagNames: string) {
     return await Filtering.getPostsByTags(tagNames);
   }
 
+  /**
+   * @param tagNames a list of tags to check, separated by comma (whitespace ignored)
+   * @returns a random post within the set of all posts that have all of the tags in 'tagNames'
+   */
   @Router.get("/filtering/getRandomPostFiltered")
   async getRandomPostFiltered(tagNames: string) {
     let allPosts = [];
@@ -255,6 +294,10 @@ class Routes {
 
   // Remixing Routes
 
+  /**
+   * @param postID the id of a post to get the remixes for
+   * @returns a list of all the remixes on the post with id 'postID'
+   */
   @Router.get("/remixing/getRemixes/:postID")
   async getPostRemixes(postID: string) {
     // assert postID is an existing post (using posting concept)
@@ -267,6 +310,10 @@ class Routes {
     return Responses.posts(result);
   }
 
+  /**
+   * @param postID the id of a post to count the number of favorites for
+   * @returns the total count of the number of remixes the post with id 'postID' has
+   */
   @Router.get("/remixing/getNumRemixed/:postID")
   async getNumRemixes(postID: string) {
     // assert postID is an existing post (using posting concept)
@@ -277,6 +324,17 @@ class Routes {
     return remixes.length;
   }
 
+  /**
+   * Creates a new post as a remix of the post with id 'originalPostID', and info from the following fields, with 'originalArtist' automatically updating from the original post
+   * @param originalPostID the original post this is a remix of
+   * @param session the current session the user is in
+   * @param videoURL the url of the video content in the post
+   * @param videoTitle the title of the post
+   * @param videoDescription a text description of the post (about/resources)
+   * @param originalArtist the original artist of the post
+   * @param options additional options for modifying the post
+   * @returns the newly created post
+   */
   @Router.post("/remixing/createRemix")
   async createRemix(originalPostID: string, session: SessionDoc, videoURL: string, videoTitle: string, videoDescription: string, originalArtist?: string, options?: PostOptions) {
     // assert that the original post exists
@@ -293,6 +351,10 @@ class Routes {
     return { msg: "Created as a remix: " + created.msg, post: await Responses.post(created.post) };
   }
 
+  /**
+   * @param numPosts The number of trending posts to get
+   * @returns A list of recent posts that have the most remixes (of size numPosts)
+   */
   @Router.get("/remixing/getTrendingRemixed/:numPosts")
   async getTrendingRemixed(numPosts: number) {
     console.log("getting trending remixed posts...");
@@ -314,6 +376,10 @@ class Routes {
     return Responses.posts(resultAsPosts);
   }
 
+  /**
+   * @param postID the id of the post to get it's original "root" post for
+   * @returns the post that this post is a remix of, or nothing if the original post was deleted, or this post was not a remix.
+   */
   @Router.get("/remixing/getOriginalPost/:postID")
   async getOriginalPost(postID: string) {
     // given some post id, returns the original post if it is a remix, or null if it's not a remix
